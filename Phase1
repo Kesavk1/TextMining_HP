@@ -1,0 +1,159 @@
+#Libraries
+options(warn = -1)
+options(scipen = 10000)
+options(repr.plot.width = 20, repr.plot.height = 13.3)
+
+library(tidyverse)
+library(dplyr)
+library(magrittr)
+library(scales)
+library(RColorBrewer)
+library(ggsci)
+library(ggthemes)
+library(lubridate)
+library(viridis)
+library(ggrepel)
+library(reshape)
+library(gridExtra)
+library(tidyverse)
+library(reshape)
+library(viridis)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(NLP)
+library(reshape)
+library(widyr)
+library(wordcloud2)
+library(tidytext)
+library(janeaustenr)
+library(htmlwidgets)
+
+annotate <- ggplot2::annotate
+
+theme_michau <- theme(legend.position = "bottom", legend.direction = "horizontal", axis.text = element_text(size = 19.6), 
+plot.caption = element_text(color = "gray65", size = 12.4), legend.text = element_text(size = 19.6, colour = "gray34"), 
+axis.title = element_text(size = 19.6, face = "bold", color = "gray25"), legend.title = element_text(size = 20.1, face = "bold", colour = "gray34"), 
+axis.line = element_line(size = 0.5), plot.title = element_text(size = 28.1, face = "bold", colour = "gray30"), 
+panel.grid.major = element_line(colour = "gray80", size = 0.15), plot.subtitle = element_text(size = 21.8, face = "bold", colour = "gray34"),
+strip.text = element_text(size = 18.9, face = "bold"), panel.grid.minor = element_line(size = 0))
+
+#script
+Script1 <- read.csv("../input/harry-potter-dataset/Harry Potter 1.csv", row.names = NULL, sep = ";", encoding = "latin1")
+Script2 <- read.csv("../input/harry-potter-dataset/Harry Potter 2.csv", row.names = NULL, sep = ";", encoding = "latin1")
+Script3 <- read.csv("../input/harry-potter-dataset/Harry Potter 3.csv", row.names = NULL, sep = ";", encoding = "latin1")
+
+names(Script3) <- c("Character", "Sentence")
+
+Script1$Character <- as.character(str_trim(Script1$Character, side = "both"))
+Script2$Character <- as.character(str_trim(Script2$Character, side = "both"))
+Script3$Character <- as.character(str_trim(Script3$Character, side = "both"))
+
+Script1$Part <- "Sorcerer's Stone"
+Script2$Part <- "Chamber of Secrets"
+Script3$Part <- "Prisoner of Azkaban"
+
+Script <- rbind(Script1, Script2, Script3)
+
+Script$Part <- factor(Script$Part, levels=c("Prisoner of Azkaban", "Chamber of Secrets", "Sorcerer's Stone"))
+Script$Character <- str_to_title(Script$Character)
+
+Script <- Script %>%
+  mutate(Character = case_when(Character %in% c("Dumbledore") ~ "Dumbledore",
+                              Character %in% c("Mcgonagall") ~ "McGonagall",
+                              Character %in% c("Hagrid") ~ "Hagrid",
+                              Character %in% c("Petunia", "Aunt Petunia") ~ "Aunt Petunia",
+                              Character %in% c("Dudley") ~ "Dudley",
+                              Character %in% c("Vernon") ~ "Vernon",
+                              Character %in% c("Harry") ~ "Harry",
+                              Character %in% c("Snake") ~ "Snake",
+                              Character %in% c("Someone") ~ "Someone",
+                              Character %in% c("Barkeep Tom") ~ "Barkeep Tom",
+                              Character %in% c("Man", "Boy", "Boy 1", "Boy 2") ~ "Man/Boy",
+                              Character %in% c("Witch") ~ "Witch",
+                              Character %in% c("Quirrell") ~ "Quirrell",
+                              Character %in% c("Goblin") ~ "Goblin",
+                              Character %in% c("Griphook") ~ "Griphook",
+                              Character %in% c("Ollivander") ~ "Ollivander",
+                              Character %in% c("Trainmaster") ~ "Trainmaster",
+                              Character %in% c("Mrs. Weasley") ~ "Mrs. Weasley",
+                              Character %in% c("George") ~ "George",
+                              Character %in% c("Fred") ~ "Fred",
+                              Character %in% c("Ginny") ~ "Ginny",
+                              Character %in% c("Ron") ~ "Ron",
+                              Character %in% c("Woman", "Girl") ~ "Girl/Woman",
+                              Character %in% c("Hermione", "Hermoine") ~ "Hermione",
+                              Character %in% c("Neville") ~ "Neville",
+                              Character %in% c("Malfoy", "Draco") ~ "Draco Malfoy",
+                              Character %in% c("Sorting Hat") ~ "Sorting Hat",
+                              Character %in% c("Seamus") ~ "Seamus",
+                              Character %in% c("Percy") ~ "Percy",
+                              Character %in% c("Sir Nicholas") ~ "Sir Nicholas",
+                              Character %in% c("Man In Paint") ~ "Man In Paint",
+                              Character %in% c("Fat Lady") ~ "Fat Lady",
+                              Character %in% c("Snape") ~ "Severus Snape",
+                              Character %in% c("Dean") ~ "Dean",
+                              Character %in% c("Madam Hooch") ~ "Madam Hooch",
+                              Character %in% c("Filch") ~ "Filch",
+                              Character %in% c("All", "All 3") ~ "Crowd",
+                              Character %in% c("Lee Jordan", "Lee  Jordan") ~ "Lee Jordan",
+                              Character %in% c("Gryffindors") ~ "Gryffindors",
+                              Character %in% c("Flint") ~ "Flint",
+                              Character %in% c("Firenze") ~ "Firenze",
+                              Character %in% c("Voldemort") ~ "Voldemort",
+                              Character %in% c("Students", "Student", "Class") ~ "Student",
+                              Character %in% c("Crowd") ~ "Crowd",
+                              Character %in% c("Uncle Vernon") ~ "Uncle Vernon",
+                              Character %in% c("Dobby") ~ "Dobby",
+                              Character %in% c("Aunt Petunia & Dudley") ~ "Aunt Petunia & Dudley",
+                              Character %in% c("Mr. Weasley") ~ "Mr. Weasley",
+                              Character %in% c("Fred, George, Ron") ~ "Fred, George, Ron",
+                              Character %in% c("Fred, George, Ron, Harry") ~ "Fred, George, Ron, Harry",
+                              Character %in% c("Lucius Malfoy") ~ "Lucius Malfoy",
+                              Character %in% c("Photographer") ~ "Photographer",
+                              Character %in% c("Lockhart", "Gilderoy Lockhart") ~ "Gilderoy Lockhart",
+                              Character %in% c("Harry And Ron") ~ "Harry and Ron",
+                              Character %in% c("Professor Sprout") ~ "Professor Sprout",
+                              Character %in% c("Penelope Clearwater") ~ "Penelope Clearwater",
+                              Character %in% c("Colin") ~ "Colin",
+                              Character %in% c("Cornish Pixies") ~ "Cornish Pixies",
+                              Character %in% c("Wood", "Oliver") ~ "Oliver Wood",
+                              Character %in% c("Voice") ~ "Voice",
+                              Character %in% c("Lupin") ~ "Lupin", 
+                              Character %in% c("Picture") ~ "Picture",
+                              Character %in% c("Slytherins") ~ "Slytherins",
+                              Character %in% c("Madam Pomfrey") ~ "Madam Pomfrey",
+                              Character %in% c("Moaning Myrtle") ~ "Moaning Myrtle",
+                              Character %in% c("Justin Finch-Fletchley") ~ "Justin Finch-Fletchley",
+                              Character %in% c("Crabbe") ~ "Crabbe",
+                              Character %in% c("Diary") ~ "Diary",
+                              Character %in% c("Tom Riddle", "Tom") ~ "Tom Riddle",
+                              Character %in% c("Harry-Ron-Hermione") ~ "Harry, Ron and Hermione",
+                              Character %in% c("Fudge") ~ "Cornelius Fudge",
+                              Character %in% c("Aragog") ~ "Aragog",
+                              Character %in% c("Aunt Marge") ~ "Aunt Marge",
+                              Character %in% c("Stan Shunpike") ~ "Stan Shunpike",
+                              Character %in% c("Vendor") ~ "Vendor",
+                              Character %in% c("Housekeeper") ~ "Housekeeper",
+                              Character %in% c("Trelawney") ~ "Sybilla Trelawney",
+                              Character %in% c("Bem") ~ "Bem",
+                              Character %in% c("Pansy Parkinson") ~ "Pansy Parkinson",
+                              Character %in% c("Parvati") ~ "Parvati Patil",
+                              Character %in% c("Teacher") ~ "Teacher",
+                              Character %in% c("Fred & George") ~ "Fred and George",
+                              Character %in% c("Madam Rosmerta") ~ "Madam Rosmerta",
+                              Character %in% c("Shrunken Head", "Shrunken Head 1", "Shrunken Head 2") ~ "Shrunken Head",
+                              Character %in% c("Goyle") ~ "Goyle",
+                              Character %in% c("Sirius") ~ "Sirius Black",
+                              Character %in% c("Pettigrew") ~ "Peter Pettigrew"))
+
+
+Bing <- get_sentiments("bing")
+
+firstup <- function(x) {
+  substr(x, 1, 1) <- toupper(substr(x, 1, 1))
+  x
+}
+
+Bing$sentiment <- firstup(Bing$sentiment)
+Main databases with a trans
