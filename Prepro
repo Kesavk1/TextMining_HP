@@ -1,0 +1,199 @@
+#Filter
+Char_Dial <- data.frame(table(Script$Character, Script$Part))
+Char_Dial %>%
+  arrange(desc(Freq)) %>%
+  filter(Var1 %in% c("Harry", "Ron", "Hermione", "Hagrid", "Dumbledore", "Lupin", "McGonagall", "Draco Malfoy", "Gilderoy Lockhart",
+                     "Severus Snape", "Lucius Malfoy", "Mrs. Weasley", "Tom Riddle", "Sirius Black", "Dobby")) %>%
+  ggplot(., aes(reorder(Var1, +Freq), Freq, fill = Var2))+
+  geom_bar(stat = "identity", width = 0.62)+
+  scale_fill_uchicago()+
+  coord_flip()+
+  guides(fill = guide_legend(title.position = "top", reverse = T))+
+  labs(title = "Characters with the most sentences",
+       subtitle = "Top 15, by part of a movie series", fill = "Part of a movie series",
+       x = "Character", y = "Number of sentences",
+       caption = "© Made by Michau96/Kaggle")+
+  theme_minimal()+
+  theme_michau+
+  theme(legend.title.align = 0.5, legend.position = "right", legend.direction = "vertical")
+#corpus
+tm <- Corpus(VectorSource(Script$Sentence))
+tm <- tm_map(tm, content_transformer(tolower))
+tm <- tm_map(tm, removeNumbers)
+tm <- tm_map(tm, removeWords, stopwords("english"))
+tm <- tm_map(tm, removePunctuation)
+tm <- tm_map(tm, stripWhitespace)
+tdm <- TermDocumentMatrix(tm)
+
+tdm <- as.matrix(tdm)
+tdm <- sort(rowSums(tdm), decreasing = T)
+tdm <- data.frame(Word = names(tdm), Number = tdm)
+#Wordcloud collage
+wc <- tdm %>%
+  filter(Number > 8) %>%
+  select(Word, Number) %>%
+  wordcloud2(., color = alpha("coral3", seq(0.9,0.2,-0.002)), backgroundColor = "white", size = 0.9)
+
+saveWidget(wc,'wordcloud2.html',selfcontained = F)
+set.seed(111)
+IRdisplay::display_html('<iframe src="wordcloud2.html" width=99% height=500></iframe>')
+#Bar plot
+tdm %>%
+  arrange(desc(Number)) %>%
+  slice(1:15) %>%
+ggplot(., aes(reorder(Word, +Number), Number))+
+  geom_bar(stat = "identity", width = 0.62, fill = "coral3", alpha = 0.85)+
+  coord_flip()+
+  labs(title = "Most popular words in the first 3 movies",
+       subtitle = "Top 15 (without stopwords)",
+       x = "Word", y = "Number of sentences", 
+       caption = "© Made by Michau96/Kaggle")+
+  theme_minimal()+
+  theme_michau
+
+#2
+tm1 <- Corpus(VectorSource(Script1$Sentence))
+tm1 <- tm_map(tm1, content_transformer(tolower))
+tm1 <- tm_map(tm1, removeNumbers)
+tm1 <- tm_map(tm1, removeWords, stopwords("english"))
+tm1 <- tm_map(tm1, removePunctuation)
+tm1 <- tm_map(tm1, stripWhitespace)
+tdm1 <- TermDocumentMatrix(tm1)
+
+tdm1 <- as.matrix(tdm1)
+tdm1 <- sort(rowSums(tdm1), decreasing = T)
+tdm1 <- data.frame(Word = names(tdm1), Number = tdm1)
+tdm1$Part <- "Sorcerer's Stone"
+
+tm2 <- Corpus(VectorSource(Script2$Sentence))
+tm2 <- tm_map(tm2, content_transformer(tolower))
+tm2 <- tm_map(tm2, removeNumbers)
+tm2 <- tm_map(tm2, removeWords, stopwords("english"))
+tm2 <- tm_map(tm2, removePunctuation)
+tm2 <- tm_map(tm2, stripWhitespace)
+tdm2 <- TermDocumentMatrix(tm2)
+
+tdm2 <- as.matrix(tdm2)
+tdm2 <- sort(rowSums(tdm2), decreasing = T)
+tdm2 <- data.frame(Word = names(tdm2), Number = tdm2)
+tdm2$Part <- "Chamber of Secrets"
+
+tm3 <- Corpus(VectorSource(Script3$Sentence))
+tm3 <- tm_map(tm3, content_transformer(tolower))
+tm3 <- tm_map(tm3, removeNumbers)
+tm3 <- tm_map(tm3, removeWords, stopwords("english"))
+tm3 <- tm_map(tm3, removePunctuation)
+tm3 <- tm_map(tm3, stripWhitespace)
+tdm3 <- TermDocumentMatrix(tm3)
+
+tdm3 <- as.matrix(tdm3)
+tdm3 <- sort(rowSums(tdm3), decreasing = T)
+tdm3 <- data.frame(Word = names(tdm3), Number = tdm3)
+tdm3$Part <- "Prisoner of Azkaban"
+
+tdm_all <- rbind(tdm1, tdm2, tdm3)
+tdm_all$Part <- factor(tdm_all$Part, levels=c("Sorcerer's Stone", "Chamber of Secrets", "Prisoner of Azkaban"))
+
+tdm_all %>%
+  filter(Word %in% c("harry", "come", "now", "know", "well", "see", "one", "just", "will", 
+                     "potter", "think", "right", "can", "professor", "good")) %>%
+ggplot(., aes(Word, Number, fill = Part))+
+  facet_wrap(.~Part)+
+  geom_bar(stat = "identity", width = 0.62, alpha = 0.85)+
+  scale_x_discrete(limits = c("good", "professor", "can",  "right", "think", "potter", "will", 
+                              "just", "one", "see", "well", "know", "now", "come","harry"))+
+  scale_fill_manual(values = c("#ffa319", "#767676", "#800000"))+
+  coord_flip()+
+  labs(title = "Top 15 most popular words in the first 3 movies",
+       subtitle = "by part of a movie series",
+       x = "Word", y = "Number of sentences per movie",
+       caption = "© Made by Michau96/Kaggle")+
+  theme_minimal()+
+  theme_michau+
+  theme(legend.position = "none")
+#3
+Script$Sentence <- as.character(Script$Sentence)
+
+Script %>%
+  unnest_tokens(output = word, input = Sentence, token = "ngrams", n = 2) %>%
+  filter(is.na(word)==F) %>%
+  separate(word, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% c("on", "in", "the", "be", "are", "i", "you", "is", "to", "a", "has", "of", "it", "he", "was", "it's")) %>%
+  filter(!word2 %in% c("on", "in", "the", "be", "are", "i", "you", "is", "to", "a", "has", "of", "it", "he", "was", "it's")) %>% 
+  unite(word,word1, word2, sep = " ") %>% 
+  count(word, sort = T) %>% 
+  slice(1:15) %>%
+ggplot(., aes(reorder(word, +n), n))+
+  geom_bar(stat = "identity", width = 0.65, fill = "#a1d76a", alpha = 0.85)+
+  coord_flip()+
+  labs(title = "Most popular bigrams in the first 3 movies",
+       subtitle = "Top 15",
+       x = "Bigram content", y = "Frequency in all 3 movies", 
+       caption = "© Made by Michau96/Kaggle")+
+  theme_minimal()+
+  theme_michau
+#4
+Script %>%
+  unnest_tokens(output = word, input = Sentence, token = "ngrams", n = 3) %>%
+  filter(is.na(word)==F) %>%
+  separate(word, c("word1", "word2", "word3"), sep = " ") %>% 
+  filter(!word1 %in% c("on", "in", "the", "be", "are", "i", "you", "is", "to", "a", "has", "of", "it", "he", "was", "it's", "we")) %>%
+  filter(!word2 %in% c("you", "we", "the")) %>% 
+  filter(!word3 %in% c("on", "in", "the", "be", "are", "i", "you", "is", "to", "a", "has", "of", "it", "he", "was", "it's", "we")) %>% 
+  unite(word,word1, word2, word3, sep = " ") %>% 
+  count(word, sort = T) %>% 
+  slice(1:15) %>%
+ggplot(., aes(reorder(word, +n), n))+
+  geom_bar(stat = "identity", width = 0.62, fill = "#a1d76a", alpha = 0.85)+
+  coord_flip()+
+  labs(title = "Most popular trigrams in the first 3 movies",
+       subtitle = "Top 15",
+       x = "Trigram content", y = "Frequency in all 3 movies", 
+       caption = "© Made by Michau96/Kaggle")+
+  theme_minimal()+
+  theme_michau
+#5
+Sentiment <- Script %>%
+  unnest_tokens(output = word, input = Sentence) %>%
+  left_join(Bing, "word") %>%
+  filter(is.na(sentiment)==F)
+
+Sentiment %>% 
+  group_by(word, sentiment) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  arrange(desc(count)) %>%
+  slice(1:20) %>%
+ggplot(., aes(reorder(word, +count), count, fill = sentiment))+
+  geom_bar(stat = "identity", width = 0.62, alpha = 0.9)+
+  scale_fill_brewer(palette = "Set1")+
+  coord_flip()+
+  labs(title = "Most popular words with assigned sentiment",
+       subtitle = "Top 20",
+       x = "Word", y = "Frequency in all 3 movies", fill = "Sentiment",
+       caption = "© Made by Michau96/Kaggle")+
+  guides(fill = guide_legend(reverse = T))+
+  theme_minimal()+
+  theme_michau+
+  theme(legend.title.align = 0.5, legend.position = "right", legend.direction = "vertical")
+#6
+Sentiment %>% 
+  filter(Character %in% c("Harry", "Ron", "Hermione", "Hagrid", "Dumbledore", "Lupin", "McGonagall", "Draco Malfoy", "Gilderoy Lockhart",
+                          "Severus Snape", "Lucius Malfoy", "Mrs. Weasley", "Tom Riddle", "Sirius Black", "Dobby"))  %>%
+  group_by(Character, sentiment) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+ggplot(., aes(Character, count, fill = sentiment))+
+  geom_bar(stat = "identity", position = "fill", width = 0.57, alpha = 0.9)+
+  scale_x_discrete(limits = c("Dobby", "Sirius Black", "Tom Riddle", "Mrs. Weasley", "Lucius Malfoy", "Severus Snape", "Gilderoy Lockhart", "Draco Malfoy", 
+                              "McGonagall", "Lupin", "Dumbledore", "Hagrid",  "Hermione", "Ron", "Harry"))+
+  scale_fill_brewer(palette = "Set1")+
+  scale_y_continuous(labels = scales::percent)+
+  coord_flip()+
+  labs(title = "Share of words with positive and negative sentiment",
+       subtitle = "by character (top 15 characters with the most sentences)", fill = "Sentiment",
+       x = "Character", y = "Ratio",
+       caption = "© Made by Michau96/Kaggle")+
+  guides(fill = guide_legend(reverse = T))+
+  theme_minimal()+
+  theme_michau+
+  theme(legend.title.align = 0.5, legend.position = "right", legend.direction = "vertical")
+#7
